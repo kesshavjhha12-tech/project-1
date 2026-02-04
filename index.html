@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en" class=""> <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Security Toolkit + AI</title>
+    <!-- Reverted to CDNs for web preview compatibility -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                        dark: { 800: '#1e293b', 900: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Web mode: dynamic height */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .dark ::-webkit-scrollbar-thumb { background-color: #475569; }
+
+        /* Animations */
+        @keyframes fadeScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-scale { animation: fadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeScale 0.3s ease-out; }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: none;
+            height: 100%;
+            min-height: 600px; /* Ensure height for web view */
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.95);
+        }
+
+        /* Range Slider Styling */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            margin-top: -6px;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+        .dark input[type=range]::-webkit-slider-runnable-track { background: #475569; }
+
+        /* Chat Typing Indicator */
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body class="min-h-screen transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-slate-800 dark:to-gray-900 text-slate-800 dark:text-slate-100 p-4 flex justify-center items-center">
+
+  <div id="login-overlay" style="position:fixed; inset:0; z-index:9999; background:rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); display:flex; align-items:center; justify-content:center; font-family:sans-serif; color:white;">
+    <div style="background:rgba(30, 41, 59, 0.75); padding:40px; border-radius:28px; width:90%; max-width:400px; text-align:center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);">
+        <h2 id="auth-title" style="margin-bottom:8px; font-size:28px; font-weight:bold; letter-spacing: -0.5px;">SecuTools</h2>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px;">Please authenticate to access tools</p>
+        
+        <form id="auth-form" style="display:flex; flex-direction:column; gap:16px;">
+            <input type="email" id="auth-email" placeholder="Email Address" required style="padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(15, 23, 42, 0.6); color:white; outline:none; font-size: 15px;">
+            
+            <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="auth-password" placeholder="Password" required style="width:100%; padding:14px; padding-right:45px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(15, 23, 42, 0.6); color:white; outline:none; font-size: 15px;">
+                <button type="button" id="toggle-pass" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 18px; padding: 5px;">👁️</button>
+            </div>
+
+            <button type="submit" id="auth-btn" style="padding:14px; border-radius:12px; border:none; background:#6366f1; color:white; font-weight:bold; cursor:pointer; font-size:16px; transition: 0.3s; margin-top: 8px; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);">Sign In</button>
+        </form>
+        
+        <p id="auth-toggle" style="margin-top:25px; font-size:13px; color:#a5b4fc; cursor:pointer; font-weight: 500;">New here? <span style="text-decoration: underline;">Create an account</span></p>
+        <p id="auth-msg" style="margin-top:15px; font-size:14px; display:none; padding: 10px; border-radius: 8px;"></p>
+    </div>
+</div>
+    
+    <div class="w-full max-w-5xl h-[85vh] glass-panel rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/50 dark:border-slate-700/50">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-full md:w-64 bg-white/50 dark:bg-slate-800/50 border-r border-slate-200 dark:border-slate-700 flex flex-col md:h-full">
+            <div class="p-4 md:p-6 border-b border-slate-200 dark:border-slate-700/50">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary-500/30 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    </div>
+                    <h1 class="font-bold text-xl tracking-tight text-slate-800 dark:text-white">SecuTools</h1>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex-1 overflow-y-auto p-2 space-y-1">
+                <button data-tab="metadata" class="tab-button w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-primary-50 dark:hover:bg-slate-700/50 text-primary-600 bg-primary-50 dark:bg-slate-700/50 dark:text-white" title="Image Cleaner">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span class="md:inline">Image Cleaner</span>
+                </button>
+                <button data-tab="password" class="tab-button w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-primary-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400" title="Password Tools">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                    <span class="md:inline">Password Tools</span>
+                </button>
+                <button data-tab="encryption" class="tab-button w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-primary-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400" title="Secure Chat">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <span class="md:inline">Secure Chat</span>
+                </button>
+                <button data-tab="link" class="tab-button w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-primary-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400" title="Smart Scanner">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <span class="md:inline">Smart Scanner</span>
+                </button>
+                <button data-tab="privacy" class="tab-button w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-primary-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400" title="Privacy Audit">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    <span class="md:inline">Privacy Audit</span>
+                </button>
+                <button data-tab="awareness" class="tab-button w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-primary-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400" title="Threat Quiz">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    <span class="md:inline">Threat Quiz</span>
+                </button>
+            </nav>
+
+            <div class="p-4 mt-auto border-t border-slate-200 dark:border-slate-700/50">
+                <button id="theme-toggle" class="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
+                    <span class="dark:hidden flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" /></svg> Light Mode</span>
+                    <span class="hidden dark:flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg> Dark Mode</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            
+            <!-- SCROLLABLE AREA for Tools -->
+            <div class="flex-1 overflow-y-auto p-6 md:p-8">
+                
+                <!-- 1. Metadata Tool -->
+                <div id="metadata-tool" class="tab-content active space-y-6">
+                    <header class="mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Metadata Cleaner</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">Strip hidden GPS and device data from your photos instantly. Processed locally.</p>
+                    </header>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-8 text-center transition-all hover:border-primary-500 hover:bg-primary-50/30 group">
+                        <label for="image-upload" class="cursor-pointer flex flex-col items-center justify-center w-full h-full">
+                            <div class="w-16 h-16 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                            <span class="text-lg font-semibold text-slate-700 dark:text-slate-200">Drop image or click to upload</span>
+                            <span class="text-sm text-slate-400 mt-1">Supports JPG, PNG</span>
+                            <span id="file-name" class="text-sm text-primary-600 font-medium mt-2 h-5 block"></span>
+                        </label>
+                        <input type="file" id="image-upload" class="hidden" accept="image/jpeg, image/png">
+                    </div>
+                    <div id="metadata-result" class="animate-fade-scale"></div>
+                </div>
+
+                <!-- 2. Password Tool -->
+                <div id="password-tool" class="tab-content space-y-8">
+                    <header>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Password Fortress</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">Generate military-grade passwords, check for breaches, and save them locally.</p>
+                    </header>
+
+                    <!-- Generator -->
+                    <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold text-primary-600 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                Generator
+                            </h3>
+                        </div>
+                        
+                        <div class="relative mb-6">
+                            <input type="text" id="generated-password" readonly class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl py-4 px-5 text-center font-mono text-xl tracking-widest text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow" placeholder="Generating...">
+                            <button id="copy-password" class="absolute right-2 top-2 bottom-2 p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy">
+                                <svg id="copy-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                            </button>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <span class="text-sm font-medium text-slate-500">Length: <span id="pass-length-val" class="text-primary-600 font-bold">16</span></span>
+                                <input type="range" id="pass-length-slider" min="8" max="32" value="16" class="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700 accent-primary-600">
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-600 dark:text-slate-300 select-none">
+                                    <input type="checkbox" id="use-symbols" checked class="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"> Symbols
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-600 dark:text-slate-300 select-none">
+                                    <input type="checkbox" id="use-numbers" checked class="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"> Numbers
+                                </label>
+                                <button id="generate-btn" class="p-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-lg shadow-primary-500/30 transition-all active:scale-95">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password Vault (NEW) -->
+                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
+                        <h3 class="font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            Local Password Vault
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                            <input type="text" id="vault-site" placeholder="Website (e.g. Gmail)" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                            <input type="text" id="vault-user" placeholder="Username" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                            <input type="text" id="vault-pass" placeholder="Password" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <button id="vault-save-btn" class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-semibold transition-colors">Save to Vault</button>
+                        
+                        <div id="vault-list" class="mt-4 space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <!-- Checker -->
+                    <div class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <h3 class="font-semibold text-slate-700 dark:text-slate-300">Breach Checker</h3>
+                        <div class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input type="password" id="password-input" class="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none" placeholder="Enter password to analyze...">
+                                <button id="toggle-password" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                    <svg id="eye-open" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    <svg id="eye-closed" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                                </button>
+                            </div>
+                            <button id="check-password-btn" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors shadow-md shadow-primary-500/20">Check</button>
+                        </div>
+                        <div id="password-result"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Encryption Tool -->
+                <div id="encryption-tool" class="tab-content space-y-6">
+                    <header>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Secure Chat</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">AES-256 local encryption. No data leaves your browser.</p>
+                    </header>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Secret Key (Password)</label>
+                            <input type="password" id="crypto-key" class="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Shared secret...">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Input</label>
+                                <textarea id="crypto-input" rows="5" class="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none" placeholder="Text to encrypt or decrypt..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Result</label>
+                                <textarea id="crypto-output" rows="5" readonly class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm text-slate-600 dark:text-slate-400 resize-none focus:outline-none" placeholder="Output will appear here..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 pt-2">
+                            <button id="btn-encrypt" class="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg> Encrypt
+                            </button>
+                            <button id="btn-decrypt" class="flex-1 py-3 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg> Decrypt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Smart Pattern Scanner -->
+                <div id="link-tool" class="tab-content space-y-6">
+                    <header>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Smart Pattern Scanner</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">Heuristic analysis engine for detecting suspicious URLs and file types offline.</p>
+                    </header>
+
+                    <div class="bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 inline-flex mb-4">
+                        <button id="mode-link" class="px-6 py-2 text-sm font-medium rounded-lg transition-all bg-primary-600 text-white shadow-md">URL Scan</button>
+                        <button id="mode-file" class="px-6 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-white">File Type</button>
+                    </div>
+
+                    <!-- URL -->
+                    <div id="vt-url-section" class="animate-fade-scale">
+                        <div class="flex gap-2">
+                            <input type="text" id="link-input" class="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none font-mono text-sm" placeholder="https://suspicious-site.xyz/login">
+                            <button id="scan-link-btn" class="px-6 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors whitespace-nowrap">Analyze</button>
+                        </div>
+                    </div>
+
+                    <!-- File -->
+                    <div id="vt-file-section" class="hidden animate-fade-scale">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-8 text-center transition-all hover:border-primary-500 hover:bg-primary-50/30">
+                            <label class="cursor-pointer flex flex-col items-center justify-center w-full h-full">
+                                <div class="w-12 h-12 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                </div>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">Select file to analyze</span>
+                                <input type="file" id="vt-file-input" class="hidden">
+                            </label>
+                            <div id="vt-file-name" class="text-xs text-slate-500 mt-2 font-mono"></div>
+                        </div>
+                        <button id="scan-file-btn" disabled class="w-full mt-4 py-3 bg-primary-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-semibold rounded-xl transition-colors">Run Analysis</button>
+                    </div>
+
+                    <div id="link-result"></div>
+                </div>
+
+                <!-- 5. Privacy Tool (NEW) -->
+                <div id="privacy-tool" class="tab-content space-y-6">
+                    <header>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Browser Privacy Audit</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">See what websites can track about you instantly.</p>
+                    </header>
+                    <div id="privacy-score-card" class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+                        <div class="text-4xl font-bold mb-2" id="privacy-score">--</div>
+                        <div class="text-sm text-slate-500">Privacy Score</div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3" id="privacy-details">
+                        <!-- Details injected by JS -->
+                    </div>
+                </div>
+
+                <!-- 6. Awareness Tool -->
+                <div id="awareness-tool" class="tab-content space-y-8">
+                    <header>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Threat Intelligence</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">Real-world scam scenarios and security checklist.</p>
+                    </header>
+
+                    <!-- Alert Banner -->
+                    <div id="scam-alert-container" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-5 relative">
+                        <button id="refresh-alert-btn" class="absolute top-3 right-3 p-1 text-amber-600 hover:bg-amber-100 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l1.5 1.5A9 9 0 0119.5 19.5M20 20l-1.5-1.5A9 9 0 004.5 4.5" /></svg>
+                        </button>
+                        <div class="flex gap-4">
+                            <div class="flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                            <div>
+                                <h3 id="scam-alert-title" class="font-bold text-amber-800 dark:text-amber-200 mb-1">Loading Alert...</h3>
+                                <p id="scam-alert-description" class="text-sm text-amber-700 dark:text-amber-300/80">Connecting to intelligence feed...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Section -->
+                    <div id="game-area" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                        <!-- Start Screen -->
+                        <div id="game-start-screen" class="text-center py-8">
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 dark:bg-slate-700 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2">Test Your Skills</h3>
+                            <p class="text-slate-500 mb-6">Can you identify sophisticated AI-generated scams?</p>
+                            <button id="start-game-btn" class="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-primary-500/30">Start Quiz (5 Questions)</button>
+                        </div>
+
+                        <!-- Question Screen -->
+                        <div id="game-question-screen" class="hidden">
+                            <div class="flex justify-between items-center mb-6">
+                                <span class="text-xs font-bold tracking-wider text-slate-400 uppercase">Scenario <span id="question-count">1</span>/5</span>
+                                <span id="game-score" class="px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-sm font-bold rounded-lg">Score: 0</span>
+                            </div>
+                            
+                            <p id="game-scenario" class="text-lg font-medium text-slate-800 dark:text-slate-200 mb-6 leading-relaxed"></p>
+                            <div id="game-options" class="space-y-3"></div>
+                            <div id="game-feedback" class="mt-6 animate-fade-scale"></div>
+                            <button id="game-next-btn" class="w-full mt-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 hidden">Next Question &rarr;</button>
+                        </div>
+
+                        <!-- Results Screen -->
+                        <div id="game-results-screen" class="hidden text-center py-4">
+                            <h3 class="text-2xl font-bold mb-2 text-slate-800 dark:text-white">Quiz Complete!</h3>
+                            <div id="final-score-display" class="text-4xl font-bold text-primary-600 mb-4"></div>
+                            <div id="final-message" class="text-slate-500 mb-8 font-medium"></div>
+                            
+                            <div id="mistakes-analysis" class="text-left mb-8 hidden">
+                                <h4 class="font-bold text-red-600 mb-3 border-b border-slate-200 pb-2">Learning Report</h4>
+                                <div id="mistakes-list" class="space-y-4"></div>
+                            </div>
+
+                            <button id="restart-game-btn" class="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors shadow-lg">Play Again (New Questions)</button>
+                        </div>
+                    </div>
+
+                    <!-- Checklist -->
+                    <div class="mt-12">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800 dark:text-white">Essential Security Checklist</h3>
+                        </div>
+                        <div id="precautions-list" class="grid gap-3"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Global Footer -->
+            <footer class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
+            <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                <span>In India and victim of cybercrime? Call the helpline: <a href="tel:1930" class="font-bold text-indigo-600 hover:underline">1930</a></span>
+            </p>
+        </footer>
+
+        </main>
+    </div>
+
+    <!-- Floating Chat Button -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <div id="chat-window" class="hidden absolute bottom-16 right-0 w-80 md:w-96 h-[500px] glass-panel bg-white/95 dark:bg-slate-800/95 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700 origin-bottom-right animate-fade-scale">
+            <div class="bg-primary-600 p-4 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                    <h3 class="font-bold text-sm">Security Assistant</h3>
+                </div>
+                <button id="close-chat" class="hover:bg-white/20 rounded-lg p-1"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 text-sm bg-slate-50 dark:bg-slate-900/50">
+                <div class="flex flex-col space-y-2">
+                    <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700 max-w-[90%] text-slate-700 dark:text-slate-300">
+                        Hello! I'm your AI security assistant. I can help check passwords, analyze links, or explain threats. How can I help?
+                    </div>
+                </div>
+            </div>
+            <div class="p-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Ask a question..." class="w-full px-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-full text-sm focus:ring-2 focus:ring-primary-500 outline-none dark:text-white">
+                    <button id="send-chat" class="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition shadow-md">
+                        <svg class="h-4 w-4 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <button id="toggle-chat" class="w-14 h-14 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center">
+            <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- UI INTERACTIONS ---
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const htmlEl = document.documentElement;
+
+            // Tab Logic
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.dataset.tab;
+                    
+                    // Reset Styles
+                    tabs.forEach(t => {
+                        t.classList.remove('bg-primary-50', 'text-primary-600', 'dark:bg-slate-700/50', 'dark:text-white');
+                        t.classList.add('text-slate-600', 'dark:text-slate-400');
+                    });
+
+                    // Active Style
+                    tab.classList.remove('text-slate-600', 'dark:text-slate-400');
+                    tab.classList.add('bg-primary-50', 'text-primary-600', 'dark:bg-slate-700/50', 'dark:text-white');
+
+                    // Show Content
+                    contents.forEach(c => {
+                        c.classList.remove('active');
+                        if(c.id === `${target}-tool`) c.classList.add('active');
+                    });
+                });
+            });
+
+            // Dark Mode
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) htmlEl.classList.add('dark');
+
+            themeToggleBtn.addEventListener('click', () => {
+                htmlEl.classList.toggle('dark');
+                localStorage.setItem('theme', htmlEl.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            // --- 1. METADATA REMOVER ---
+            const imageUpload = document.getElementById('image-upload');
+            const metadataResult = document.getElementById('metadata-result');
+            const fileNameSpan = document.getElementById('file-name');
+
+            imageUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                fileNameSpan.textContent = file.name;
+                metadataResult.innerHTML = `<div class="flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent"></div></div>`;
+
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width; canvas.height = img.height;
+                        canvas.getContext('2d').drawImage(img, 0, 0);
+                        
+                        canvas.toBlob((blob) => {
+                            const cleanedUrl = URL.createObjectURL(blob);
+                            EXIF.getData(file, function() {
+                                const tags = EXIF.getAllTags(this);
+                                const hasData = Object.keys(tags).length > 0;
+                                
+                                let tagsHtml = '';
+                                if (hasData) {
+                                    tagsHtml = `<div class="mb-4 text-left bg-white dark:bg-slate-900 p-4 rounded-lg shadow-inner max-h-48 overflow-y-auto text-xs">
+                                        <table class="w-full">
+                                            <thead class="text-slate-400 border-b border-slate-200 dark:border-slate-700"><tr><th class="pb-2">Tag</th><th class="pb-2">Value</th></tr></thead>
+                                            <tbody class="text-slate-600 dark:text-slate-300 font-mono">
+                                                ${Object.entries(tags).map(([k,v]) => `<tr><td class="py-1 pr-2 font-semibold">${k}</td><td class="py-1 break-all">${String(v).substring(0,50)}</td></tr>`).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>`;
+                                }
+
+                                let statusHtml = hasData 
+                                    ? `<div class="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 p-4 rounded-xl mb-4 flex flex-col gap-2">
+                                        <div class="flex items-center gap-2 font-bold"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Found & Removed ${Object.keys(tags).length} hidden data tags:</div>
+                                        ${tagsHtml}
+                                       </div>`
+                                    : `<div class="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-4 rounded-xl mb-4 flex items-center gap-3">
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Image appears clean. We scrubbed it anyway to be safe.</span>
+                                       </div>`;
+
+                                metadataResult.innerHTML = `
+                                    ${statusHtml}
+                                    <div class="flex flex-col md:flex-row gap-6">
+                                        <div class="flex-1">
+                                            <img src="${cleanedUrl}" class="rounded-lg shadow-lg w-full h-64 object-contain bg-slate-100 dark:bg-slate-900">
+                                        </div>
+                                        <div class="flex-1 flex items-center">
+                                            <a href="${cleanedUrl}" download="cleaned_${file.name}" class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-center shadow-lg shadow-primary-500/30 transition-transform hover:scale-105">
+                                                Download Safe Image
+                                            </a>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }, file.type);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // --- 2. PASSWORD GENERATOR ---
+            const genBtn = document.getElementById('generate-btn');
+            const copyBtn = document.getElementById('copy-password');
+            const genInput = document.getElementById('generated-password');
+            const lenSlider = document.getElementById('pass-length-slider');
+            const lenVal = document.getElementById('pass-length-val');
+            const useSymbols = document.getElementById('use-symbols');
+            const useNumbers = document.getElementById('use-numbers');
+            
+            const generatePass = () => {
+                const len = parseInt(lenSlider.value);
+                lenVal.textContent = len;
+                let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                if(useNumbers.checked) chars += "0123456789";
+                if(useSymbols.checked) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
+                
+                const arr = new Uint32Array(len);
+                window.crypto.getRandomValues(arr);
+                let pass = "";
+                for(let i=0; i<len; i++) pass += chars[arr[i] % chars.length];
+                genInput.value = pass;
+            };
+
+            lenSlider.addEventListener('input', generatePass);
+            useSymbols.addEventListener('change', generatePass);
+            useNumbers.addEventListener('change', generatePass);
+            genBtn.addEventListener('click', generatePass);
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(genInput.value);
+                copyBtn.innerHTML = `<svg class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+                setTimeout(() => copyBtn.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>`, 2000);
+            });
+            generatePass();
+
+            // --- PASSWORD VAULT (NEW) ---
+            const vaultList = document.getElementById('vault-list');
+            const saveVaultBtn = document.getElementById('vault-save-btn');
+
+            function renderVault() {
+                const vault = JSON.parse(localStorage.getItem('secutools_vault') || '[]');
+                if (vault.length === 0) {
+                    vaultList.innerHTML = '<div class="text-slate-400 text-sm text-center italic py-4">No passwords saved yet.</div>';
+                    return;
+                }
+                vaultList.innerHTML = vault.map((item, idx) => `
+                    <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <div class="flex flex-col min-w-0 pr-2">
+                            <div class="font-bold text-slate-700 dark:text-slate-200 truncate text-sm">${item.site}</div>
+                            <div class="text-slate-500 text-xs truncate">${item.user}</div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="copyVaultPass('${item.pass}')" class="p-1.5 text-primary-600 hover:bg-primary-50 rounded-md transition-colors" title="Copy Password">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 01-2-2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" /></svg>
+                            </button>
+                            <button onclick="deleteVaultItem(${idx})" class="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            saveVaultBtn.addEventListener('click', () => {
+                const site = document.getElementById('vault-site').value.trim();
+                const user = document.getElementById('vault-user').value.trim();
+                const pass = document.getElementById('vault-pass').value.trim();
+                
+                if(!site || !user || !pass) return; // basic validation
+                
+                const vault = JSON.parse(localStorage.getItem('secutools_vault') || '[]');
+                vault.push({ site, user, pass });
+                localStorage.setItem('secutools_vault', JSON.stringify(vault));
+                
+                // Clear inputs
+                document.getElementById('vault-site').value = '';
+                document.getElementById('vault-user').value = '';
+                document.getElementById('vault-pass').value = '';
+                
+                renderVault();
+            });
+
+            window.deleteVaultItem = (idx) => {
+                const vault = JSON.parse(localStorage.getItem('secutools_vault') || '[]');
+                vault.splice(idx, 1);
+                localStorage.setItem('secutools_vault', JSON.stringify(vault));
+                renderVault();
+            };
+
+            window.copyVaultPass = (pass) => {
+                navigator.clipboard.writeText(pass);
+                // Optional: toast feedback could go here
+            }
+
+            // Initialize Vault
+            renderVault();
+
+            // --- PASSWORD CHECKER ---
+            document.getElementById('check-password-btn').addEventListener('click', async () => {
+                const pw = document.getElementById('password-input').value;
+                const res = document.getElementById('password-result');
+                if(!pw) return;
+                
+                res.innerHTML = `<div class="flex items-center gap-2 text-slate-500"><div class="animate-spin rounded-full h-4 w-4 border-2 border-slate-500 border-t-transparent"></div> Checking database...</div>`;
+                
+                let score = 0;
+                if(pw.length > 12) score++;
+                if(/[A-Z]/.test(pw)) score++;
+                if(/[0-9]/.test(pw)) score++;
+                if(/[^A-Za-z0-9]/.test(pw)) score++;
+                
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pw);
+                const buf = await crypto.subtle.digest('SHA-1', data);
+                const hashArr = Array.from(new Uint8Array(buf));
+                const hashHex = hashArr.map(b => b.toString(16).padStart(2,'0')).join('').toUpperCase();
+                const prefix = hashHex.substring(0,5);
+                const suffix = hashHex.substring(5);
+                
+                try {
+                    const apiRes = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+                    const text = await apiRes.text();
+                    const match = text.split('\r\n').find(line => line.startsWith(suffix));
+                    const count = match ? parseInt(match.split(':')[1]) : 0;
+                    
+                    const color = count > 0 ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400';
+                    const icon = count > 0 ? '⚠️' : '✅';
+                    const title = count > 0 ? 'Breached Password' : 'Safe Password';
+                    const desc = count > 0 ? `This password appears in <b>${count.toLocaleString()}</b> known data leaks. Change it immediately.` : `Good news! This password was not found in any known public breaches.`;
+
+                    res.innerHTML = `
+                        <div class="mt-4 p-4 rounded-xl border ${color}">
+                            <div class="flex items-center gap-2 font-bold text-lg mb-1"><span>${icon}</span> ${title}</div>
+                            <p class="text-sm opacity-90">${desc}</p>
+                            <div class="mt-3 text-xs font-semibold uppercase tracking-wider opacity-70">Strength Score: ${score}/4</div>
+                            <div class="w-full bg-black/10 h-1.5 rounded-full mt-1"><div class="h-full rounded-full bg-current" style="width: ${(score/4)*100}%"></div></div>
+                        </div>
+                    `;
+                } catch(e) {
+                    res.innerHTML = `<div class="text-red-500 text-sm mt-2">Error checking database. Check internet connection.</div>`;
+                }
+            });
+
+            document.getElementById('toggle-password').addEventListener('click', function() {
+                const input = document.getElementById('password-input');
+                const isOpen = input.type === 'text';
+                input.type = isOpen ? 'password' : 'text';
+                this.querySelector('#eye-open').classList.toggle('hidden', isOpen);
+                this.querySelector('#eye-closed').classList.toggle('hidden', !isOpen);
+            });
+
+            // --- 3. ENCRYPTION (Fixed Buffer Handling) ---
+            const getCryptoKey = async (pw, salt, usage) => {
+                const enc = new TextEncoder();
+                const keyMat = await window.crypto.subtle.importKey("raw", enc.encode(pw), {name: "PBKDF2"}, false, ["deriveKey"]);
+                return window.crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256"}, keyMat, {name: "AES-GCM", length: 256}, false, usage);
+            };
+            
+            const buf2Base64 = buf => {
+                let binary = '';
+                const bytes = new Uint8Array(buf);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return window.btoa(binary);
+            }
+            const base642Buf = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+
+            document.getElementById('btn-encrypt').addEventListener('click', async () => {
+                const pw = document.getElementById('crypto-key').value;
+                const txt = document.getElementById('crypto-input').value;
+                if(!pw || !txt) return alert('Please enter key and text');
+                
+                try {
+                    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const key = await getCryptoKey(pw, salt, ['encrypt']);
+                    const enc = new TextEncoder();
+                    const encrypted = await window.crypto.subtle.encrypt({name: "AES-GCM", iv}, key, enc.encode(txt));
+                    
+                    document.getElementById('crypto-output').value = `${buf2Base64(salt)}:${buf2Base64(iv)}:${buf2Base64(encrypted)}`;
+                } catch(e) {
+                    alert("Encryption failed. Check inputs.");
+                    console.error(e);
+                }
+            });
+
+            document.getElementById('btn-decrypt').addEventListener('click', async () => {
+                const pw = document.getElementById('crypto-key').value;
+                const txt = document.getElementById('crypto-input').value;
+                if(!pw || !txt) return alert('Please enter key and encrypted text');
+                
+                try {
+                    const parts = txt.split(':');
+                    const salt = base642Buf(parts[0]);
+                    const iv = base642Buf(parts[1]);
+                    const data = base642Buf(parts[2]);
+                    const key = await getCryptoKey(pw, salt, ['decrypt']);
+                    const dec = await window.crypto.subtle.decrypt({name: "AES-GCM", iv}, key, data);
+                    document.getElementById('crypto-output').value = new TextDecoder().decode(dec);
+                } catch(e) {
+                    document.getElementById('crypto-output').value = "Error: Decryption failed. Wrong password or corrupted data.";
+                }
+            });
+
+            // --- 4. PATTERN SCANNER ---
+            const scanLinkBtn = document.getElementById('scan-link-btn');
+            const scanFileBtn = document.getElementById('scan-file-btn');
+            const linkInput = document.getElementById('link-input');
+            const fileInput = document.getElementById('vt-file-input');
+            const resultDiv = document.getElementById('link-result');
+            const modeLink = document.getElementById('mode-link');
+            const modeFile = document.getElementById('mode-file');
+
+            modeLink.addEventListener('click', () => {
+                modeLink.classList.add('bg-primary-600', 'text-white');
+                modeLink.classList.remove('text-slate-600');
+                modeFile.classList.remove('bg-primary-600', 'text-white');
+                modeFile.classList.add('text-slate-600');
+                document.getElementById('vt-url-section').classList.remove('hidden');
+                document.getElementById('vt-file-section').classList.add('hidden');
+                resultDiv.innerHTML = '';
+            });
+
+            modeFile.addEventListener('click', () => {
+                modeFile.classList.add('bg-primary-600', 'text-white');
+                modeFile.classList.remove('text-slate-600');
+                modeLink.classList.remove('bg-primary-600', 'text-white');
+                modeLink.classList.add('text-slate-600');
+                document.getElementById('vt-file-section').classList.remove('hidden');
+                document.getElementById('vt-url-section').classList.add('hidden');
+                resultDiv.innerHTML = '';
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if(e.target.files[0]) {
+                    document.getElementById('vt-file-name').textContent = e.target.files[0].name;
+                    scanFileBtn.disabled = false;
+                }
+            });
+
+            const showRisk = (score, findings) => {
+                const color = score >= 50 ? 'bg-red-50 text-red-700 border-red-200' : (score > 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200');
+                const title = score >= 50 ? 'High Risk Detected' : (score > 0 ? 'Suspicious' : 'Appears Safe');
+                
+                resultDiv.innerHTML = `
+                    <div class="p-5 rounded-xl border ${color} mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-bold text-lg">${title}</h4>
+                            <span class="text-xs font-bold bg-white/50 px-2 py-1 rounded">Risk Score: ${score}/100</span>
+                        </div>
+                        <ul class="list-disc list-inside text-sm space-y-1 opacity-90">
+                            ${findings.length ? findings.map(f => `<li>${f}</li>`).join('') : '<li>No obvious threats patterns found.</li>'}
+                        </ul>
+                    </div>
+                `;
+            };
+
+            scanLinkBtn.addEventListener('click', () => {
+                const url = linkInput.value.trim();
+                if(!url) return;
+                resultDiv.innerHTML = `<div class="flex items-center gap-2 text-slate-500 justify-center py-4"><div class="animate-spin rounded-full h-5 w-5 border-2 border-primary-600 border-t-transparent"></div> Analyzing patterns...</div>`;
+                
+                setTimeout(() => {
+                    let score = 0;
+                    let findings = [];
+                    if(!url.startsWith('https')) { score += 20; findings.push("Not using secure HTTPS protocol."); }
+                    if(/^http:\/\/(\d{1,3}\.){3}\d{1,3}/.test(url)) { score += 50; findings.push("Raw IP address used instead of domain name."); }
+                    if(['.xyz','.top','.zip','.tk','.ru'].some(x => url.includes(x))) { score += 30; findings.push("Suspicious Top Level Domain (TLD)."); }
+                    if(url.includes('@')) { score += 40; findings.push("URL obfuscation detected (@ symbol)."); }
+                    
+                    showRisk(score, findings);
+                }, 800);
+            });
+
+            scanFileBtn.addEventListener('click', () => {
+                const file = fileInput.files[0];
+                if(!file) return;
+                resultDiv.innerHTML = `<div class="flex items-center gap-2 text-slate-500 justify-center py-4"><div class="animate-spin rounded-full h-5 w-5 border-2 border-primary-600 border-t-transparent"></div> Analyzing file header...</div>`;
+                
+                setTimeout(() => {
+                    let score = 0;
+                    let findings = [];
+                    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                    if(['.exe','.scr','.bat','.vbs'].includes(ext)) { score += 60; findings.push(`High risk executable extension (${ext}).`); }
+                    if(file.name.split('.').length > 2) { score += 40; findings.push("Double extension detected (e.g. file.pdf.exe)."); }
+                    
+                    showRisk(score, findings);
+                }, 800);
+            });
+
+            // --- 5. PRIVACY AUDIT (UPDATED with Fixes) ---
+            const checkPrivacy = () => {
+                let score = 100;
+                let details = [];
+
+                // 1. Check Cookies
+                const cookiesOn = navigator.cookieEnabled;
+                if(cookiesOn) score -= 20;
+                details.push({ 
+                    label: "Cookies Enabled", 
+                    val: cookiesOn ? "Yes" : "No", 
+                    bad: cookiesOn,
+                    fix: "Go to Browser Settings > Privacy > Cookies and block 'Third-party cookies'."
+                });
+
+                // 2. Do Not Track
+                const dnt = navigator.doNotTrack;
+                const dntOn = dnt === "1" || dnt === "yes";
+                if(!dntOn) score -= 20;
+                details.push({ 
+                    label: "Do Not Track", 
+                    val: dntOn ? "Active" : "Disabled", 
+                    bad: !dntOn,
+                    fix: "Enable 'Send a Do Not Track request' in your browser settings."
+                });
+
+                // 3. User Agent (Too specific is bad)
+                const ua = navigator.userAgent;
+                details.push({ label: "User Agent", val: ua.substring(0, 30)+"...", bad: false }); 
+
+                // 4. Screen Resolution
+                const res = `${window.screen.width}x${window.screen.height}`;
+                details.push({ label: "Screen Res", val: res, bad: false });
+
+                // 5. Language
+                details.push({ label: "Language", val: navigator.language, bad: false });
+
+                // Update UI
+                const scoreEl = document.getElementById('privacy-score');
+                scoreEl.textContent = `${score}/100`;
+                scoreEl.className = `text-4xl font-bold mb-2 ${score > 80 ? 'text-green-500' : 'text-amber-500'}`;
+
+                document.getElementById('privacy-details').innerHTML = details.map(d => `
+                    <div class="flex flex-col p-4 rounded-xl border ${d.bad ? 'bg-red-50 border-red-100 dark:bg-red-900/20 dark:border-red-800' : 'bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-700'}">
+                        <div class="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">${d.label}</div>
+                        <div class="font-mono text-sm truncate ${d.bad ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}">${d.val}</div>
+                        ${d.bad ? `<div class="mt-2 text-xs text-red-500 dark:text-red-300 font-medium bg-white/50 dark:bg-black/20 p-2 rounded">💡 Fix: ${d.fix}</div>` : ''}
+                    </div>
+                `).join('');
+            };
+            
+            document.querySelector('[data-tab="privacy"]').addEventListener('click', checkPrivacy);
+
+            // --- 6. AWARENESS GAME & ALERTS ---
+            let score = 0;
+            let questionCount = 0;
+            let userMistakes = [];
+            const MAX_QUESTIONS = 5;
+            const allScenarios = [
+                { t: "Phishing", q: "Email from 'Amaz0n-Support' says your order #1234 is locked. Click link to verify.", a: ["Click link", "Check sender email", "Reply with password"], correct: 1, exp: "Official emails come from amazon.com, not 'amaz0n'. Always verify the sender." },
+                { t: "Smishing", q: "SMS: 'USPS: Package undelivered. Update address here: usps-tracking-info.com'", a: ["Ignore/Delete", "Click link", "Forward to friends"], correct: 0, exp: "USPS won't send random links. 'usps-tracking-info.com' is a fake domain." },
+                { t: "Tech Support", q: "Loud popup: 'VIRUS DETECTED! Call Microsoft at 1-800-XXX-XXXX immediately'.", a: ["Call number", "Download tool", "Force close browser"], correct: 2, exp: "Microsoft never sends popups asking you to call. This is scareware." },
+                { t: "CEO Fraud", q: "Email from your 'CEO' asking for urgent gift cards for a client meeting.", a: ["Buy cards", "Verify via Slack/Call", "Reply with code"], correct: 1, exp: "Urgent requests for money/gift cards are classic executive impersonation scams." },
+                { t: "Password", q: "A website asks for your email password to 'link your contacts'.", a: ["Give password", "Use OAuth (Login with Google)", "Type fake password"], correct: 1, exp: "Never give your raw password to a third party. Use secure tokens like OAuth." },
+                { t: "Public Wi-Fi", q: "You're at a cafe. Two networks appear: 'Starbucks_Free' and 'Starbucks_Guest_Free'.", a: ["Connect to strongest", "Ask staff which is real", "Use VPN on either"], correct: 2, exp: "Hackers create 'Evil Twin' hotspots. A VPN encrypts your data regardless." },
+                { t: "USB Drop", q: "You find a USB drive labeled 'Payroll 2024' in the parking lot.", a: ["Plug it in", "Give to IT Security", "Throw in trash"], correct: 1, exp: "USBs can auto-execute malware. Never plug in found drives." },
+                { t: "2FA", q: "You get a 2FA code you didn't request. A 'Support Agent' calls asking for it.", a: ["Give code", "Hang up", "Ask for their ID"], correct: 1, exp: "Support will NEVER ask for your OTP. This is an account takeover attempt." },
+                { t: "Social Media", q: "Friend sends a FB message: 'Is this you in this video?? [link]'", a: ["Click link", "Message friend separately", "Ignore"], correct: 1, exp: "Your friend's account is likely hacked. The link is a phishing trap." },
+                { t: "Updates", q: "Browser popup: 'Flash Player is outdated! Click to update'.", a: ["Click update", "Close popup", "Download form Adobe.com"], correct: 1, exp: "Fake update popups install malware. Browsers update automatically now." },
+                { t: "QR Code", q: "A parking meter has a new QR sticker over the old payment slot.", a: ["Scan and pay", "Use official app/Cash", "Google the code"], correct: 1, exp: "Scammers stick malicious QR codes over legit ones ('Quishing')." },
+                { t: "Job Offer", q: "Remote job offer: 'Pay check sent in advance. Buy equipment from our vendor'.", a: ["Deposit check", "Report as scam", "Buy equipment"], correct: 1, exp: "Fake check scam. The check will bounce after you send your own money." }
+            ];
+
+            const shuffle = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            };
+
+            let activeQuestions = [];
+            const startScreen = document.getElementById('game-start-screen');
+            const qScreen = document.getElementById('game-question-screen');
+            const rScreen = document.getElementById('game-results-screen');
+            const scenarioTxt = document.getElementById('game-scenario');
+            const optionsDiv = document.getElementById('game-options');
+            const feedback = document.getElementById('game-feedback');
+            const nextBtn = document.getElementById('game-next-btn');
+            const qCountDisplay = document.getElementById('question-count');
+            const scoreDisplay = document.getElementById('game-score');
+
+            const startQuiz = () => {
+                score = 0;
+                questionCount = 0;
+                userMistakes = [];
+                activeQuestions = shuffle([...allScenarios]).slice(0, MAX_QUESTIONS);
+                startScreen.classList.add('hidden');
+                rScreen.classList.add('hidden');
+                qScreen.classList.remove('hidden');
+                loadQuestion();
+            };
+
+            const loadQuestion = () => {
+                if (questionCount >= MAX_QUESTIONS) {
+                    showResults();
+                    return;
+                }
+                const q = activeQuestions[questionCount];
+                scenarioTxt.textContent = q.q;
+                qCountDisplay.textContent = questionCount + 1;
+                scoreDisplay.textContent = `Score: ${score}`;
+                optionsDiv.innerHTML = q.a.map((opt, i) => `<button class="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-600 hover:bg-primary-50 dark:hover:bg-slate-700 transition-colors" onclick="checkAns(${i}, ${q.correct}, '${q.exp.replace(/'/g, "\\'")}', '${q.q.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}', this)">${opt}</button>`).join('');
+                feedback.innerHTML = '';
+                nextBtn.classList.add('hidden');
+            };
+
+            window.checkAns = (idx, correct, exp, qText, userAns, btn) => {
+                const opts = optionsDiv.children;
+                for(let o of opts) o.disabled = true;
+                if(idx === correct) {
+                    btn.classList.add('bg-green-100', 'border-green-500', 'dark:bg-green-900/30');
+                    score++;
+                    feedback.innerHTML = `<div class="text-green-600 font-bold mb-1">Correct!</div><div class="text-sm text-slate-600 dark:text-slate-300">${exp}</div>`;
+                } else {
+                    btn.classList.add('bg-red-100', 'border-red-500', 'dark:bg-red-900/30');
+                    feedback.innerHTML = `<div class="text-red-600 font-bold mb-1">Incorrect</div><div class="text-sm text-slate-600 dark:text-slate-300">${exp}</div>`;
+                    userMistakes.push({ q: qText, a: userAns, why: exp });
+                }
+                scoreDisplay.textContent = `Score: ${score}`;
+                questionCount++;
+                nextBtn.classList.remove('hidden');
+            };
+
+            const showResults = () => {
+                qScreen.classList.add('hidden');
+                rScreen.classList.remove('hidden');
+                const percentage = (score / MAX_QUESTIONS) * 100;
+                let rating = "Security Rookie";
+                let color = "text-red-500";
+                if(percentage >= 80) { rating = "Cyber Guardian"; color = "text-green-500"; }
+                else if(percentage >= 60) { rating = "Security Aware"; color = "text-amber-500"; }
+                document.getElementById('final-score-display').innerHTML = `${score}/${MAX_QUESTIONS} <span class="text-lg text-slate-400">(${percentage}%)</span>`;
+                document.getElementById('final-message').innerHTML = `<span class="${color} font-bold">${rating}</span>`;
+                const mistakesDiv = document.getElementById('mistakes-analysis');
+                const mistakesList = document.getElementById('mistakes-list');
+                if(userMistakes.length > 0) {
+                    mistakesDiv.classList.remove('hidden');
+                    mistakesList.innerHTML = userMistakes.map(m => `<div class="bg-red-50 dark:bg-red-900/10 p-4 rounded-lg border border-red-100 dark:border-red-900/30 text-sm"><div class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Q: ${m.q}</div><div class="text-red-600 mb-2">You chose: ${m.a}</div><div class="text-slate-600 dark:text-slate-400 italic">💡 ${m.why}</div></div>`).join('');
+                } else {
+                    mistakesDiv.classList.add('hidden');
+                    document.getElementById('final-message').innerHTML += "<br>Perfect Score! You are a pro.";
+                }
+            };
+
+            document.getElementById('start-game-btn').addEventListener('click', startQuiz);
+            document.getElementById('game-next-btn').addEventListener('click', loadQuestion);
+            document.getElementById('restart-game-btn').addEventListener('click', startQuiz);
+
+            const precautions = [
+                { t: "Use a Password Manager", d: "Stop memorizing passwords. Use Bitwarden or 1Password to generate unique keys." },
+                { t: "Enable 2FA Everywhere", d: "Turn on Two-Factor Auth (TOTP apps like Google Auth, not SMS) for email and banking." },
+                { t: "Update Everything", d: "Set your OS and browser to auto-update. Patches fix security holes hackers use." },
+                { t: "Lock Your Credit", d: "Freeze your credit files at Equifax, Experian, and TransUnion to prevent identity theft." },
+                { t: "Use a VPN on Public Wi-Fi", d: "Never trust coffee shop or airport Wi-Fi without encryption." }
+            ];
+            document.getElementById('precautions-list').innerHTML = precautions.map(p => `<div class="flex gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow cursor-default group"><div class="mt-1 text-primary-500 group-hover:scale-110 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div><h4 class="font-semibold text-slate-800 dark:text-slate-100">${p.t}</h4><p class="text-sm text-slate-500 dark:text-slate-400 mt-1">${p.d}</p></div></div>`).join('');
+
+            // Alert Logic
+            const loadAlert = async () => {
+                const titleEl = document.getElementById('scam-alert-title');
+                const descEl = document.getElementById('scam-alert-description');
+                
+                // Show loading state explicitly
+                titleEl.textContent = "Fetching Intel...";
+                descEl.textContent = "Connecting to live threat feed...";
+
+                // Static fallback array
+                const staticAlerts = [
+                    { t: "AI Voice Cloning", d: "Attackers are using AI to mimic relatives' voices for bail money scams. Verify by calling back." },
+                    { t: "Fake Job Offers", d: "Beware of WhatsApp messages offering 'Part-time likes' jobs. These are pyramid schemes." },
+                    { t: "QR Code Quishing", d: "Scammers are placing fake QR stickers on parking meters to steal card details." }
+                ];
+
+                try {
+                    // Add timestamp to force unique results
+                    const seed = Date.now(); 
+                    const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent('Generate one short, urgent cybersecurity alert title and one sentence description based on current trends. Format: Title|Description. Random Seed: ' + seed)}`);
+                    
+                    if (!res.ok) throw new Error("Network response was not ok");
+                    
+                    const text = await res.text();
+                    if(text.includes('|')) {
+                        const [t, d] = text.split('|');
+                        titleEl.textContent = t.trim();
+                        descEl.textContent = d.trim();
+                    } else {
+                        throw new Error("Invalid format");
+                    }
+                } catch(e) { 
+                    console.log("Using offline alert fallback"); 
+                    // Only use static fallback if AI fails
+                    const randAlert = staticAlerts[Math.floor(Math.random() * staticAlerts.length)];
+                    titleEl.textContent = randAlert.t;
+                    descEl.textContent = randAlert.d;
+                }
+            };
+            
+            // Initial load
+            loadAlert();
+            document.getElementById('refresh-alert-btn').addEventListener('click', loadAlert);
+
+            // Chat
+            const chatWin = document.getElementById('chat-window');
+            const chatInput = document.getElementById('chat-input');
+            const msgs = document.getElementById('chat-messages');
+            document.getElementById('toggle-chat').addEventListener('click', () => chatWin.classList.toggle('hidden'));
+            document.getElementById('close-chat').addEventListener('click', () => chatWin.classList.add('hidden'));
+            const sendMsg = async () => {
+                const txt = chatInput.value.trim();
+                if(!txt) return;
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-2xl max-w-[85%] text-sm bg-primary-600 text-white self-end rounded-tr-none shadow-md flex flex-col items-end`;
+                div.innerText = txt;
+                msgs.appendChild(div);
+                msgs.scrollTop = msgs.scrollHeight;
+                chatInput.value = '';
+                const loader = document.createElement('div');
+                loader.className = 'p-3 bg-white dark:bg-slate-800 rounded-2xl rounded-tl-none self-start shadow-sm w-12 flex justify-center gap-1';
+                loader.innerHTML = `<div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>`;
+                msgs.appendChild(loader);
+                try {
+                    const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent('You are a security expert. Concise answer: '+txt)}`);
+                    const ans = await res.text();
+                    msgs.removeChild(loader);
+                    const botDiv = document.createElement('div');
+                    botDiv.className = `p-3 rounded-2xl max-w-[85%] text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 self-start rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-start`;
+                    botDiv.innerHTML = marked.parse(ans);
+                    msgs.appendChild(botDiv);
+                    msgs.scrollTop = msgs.scrollHeight;
+                } catch(e) { msgs.removeChild(loader); }
+            };
+            document.getElementById('send-chat').addEventListener('click', sendMsg);
+            chatInput.addEventListener('keypress', (e) => e.key === 'Enter' && sendMsg());
+        });
+        // --- LOGIN SYSTEM LOGIC ---
+const authForm = document.getElementById('auth-form');
+const authToggle = document.getElementById('auth-toggle');
+const loginOverlay = document.getElementById('login-overlay');
+let isLoginMode = true;
+
+// 1. Toggle between Login and Register
+authToggle.onclick = () => {
+    isLoginMode = !isLoginMode;
+    document.getElementById('auth-title').innerText = isLoginMode ? "SecuTools Login" : "Create Account";
+    document.getElementById('auth-btn').innerText = isLoginMode ? "Sign In" : "Register";
+    authToggle.innerText = isLoginMode ? "Need an account? Register" : "Already have an account? Login";
+};
+
+// 2. Handle Login/Register
+authForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const route = isLoginMode ? 'login' : 'register';
+
+    try {
+        const res = await fetch(`http://localhost:3000/api/${route}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            if (isLoginMode) {
+                // SUCCESS: Remove the login wall and reveal your project!
+                loginOverlay.style.display = 'none'; 
+            } else {
+                alert("Success! Now please Sign In.");
+                authToggle.click();
+            }
+        } else {
+            alert(data.error || "Login Failed");
+        }
+    } catch (err) {
+        alert("Server Error: Make sure your terminal says 'SQLite Server running'.");
+    }
+};
+
+    const passInput = document.getElementById('auth-password');
+const toggleBtn = document.getElementById('toggle-pass');
+
+toggleBtn.addEventListener('click', () => {
+    // Switch between 'password' and 'text' type
+    const isPass = passInput.type === 'password';
+    passInput.type = isPass ? 'text' : 'password';
+    
+    // Change the icon/opacity to show it's active
+    toggleBtn.innerText = isPass ? '🔒' : '👁️';
+    toggleBtn.style.color = isPass ? '#6366f1' : '#94a3b8';
+});
+    </script>
+</body>
+</html>
